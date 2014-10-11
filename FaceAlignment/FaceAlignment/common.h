@@ -25,6 +25,9 @@
 #include <math.h>
 #include <random>
 
+#include <thread>
+#include <chrono>
+
 #include <iostream>
 #include <fstream>
 #include <memory>
