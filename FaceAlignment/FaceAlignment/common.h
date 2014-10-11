@@ -33,6 +33,6 @@
 
 using namespace std;
 
-typedef unsigned int idx_t;
+typedef unsigned long idx_t;
 
 #endif

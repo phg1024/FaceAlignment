@@ -31,6 +31,8 @@
 		F736A90219E75A57005E485B /* randomforest.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = randomforest.hpp; sourceTree = "<group>"; };
 		F736A90719E75C50005E485B /* common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = common.h; sourceTree = "<group>"; };
 		F736A90819E75DA8005E485B /* testdecisiontree.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = testdecisiontree.h; sourceTree = "<group>"; };
+		F736A90919E8E43A005E485B /* fernregressor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = fernregressor.hpp; sourceTree = "<group>"; };
+		F736A90A19E8E971005E485B /* testfernregressor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = testfernregressor.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +72,8 @@
 				F736A8F419E75A2D005E485B /* main.cpp */,
 				F736A90719E75C50005E485B /* common.h */,
 				F736A90819E75DA8005E485B /* testdecisiontree.h */,
+				F736A90919E8E43A005E485B /* fernregressor.hpp */,
+				F736A90A19E8E971005E485B /* testfernregressor.h */,
 			);
 			path = FaceAlignment;
 			sourceTree = "<group>";
