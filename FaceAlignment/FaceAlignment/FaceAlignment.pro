@@ -18,7 +18,7 @@ HEADERS += \
     imagepreprocessor.h
 
 INCLUDEPATH += /usr/local/include
-LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui
+LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc
 
 INCLUDEPATH += $$PWD/../../../../Utils/PhGLib/include
 macx: CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../Utils/PhGLib/lib/debug/ -lPhGLib
