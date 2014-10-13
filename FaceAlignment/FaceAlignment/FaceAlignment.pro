@@ -1,10 +1,12 @@
-QT += core widgets
+QT += core widgets xml
 CONFIG += qt c++11
 CONFIG -= app_bundle
 
 SOURCES = \
     main.cpp \
-    imagepreprocessor.cpp
+    imagepreprocessor.cpp \
+    explicitshaperegressor.cpp \
+    facedetector.cpp
 
 HEADERS += \
     common.h \
@@ -15,12 +17,34 @@ HEADERS += \
     randomforest.hpp \
     testdecisiontree.h \
     testfernregressor.h \
-    imagepreprocessor.h
+    imagepreprocessor.h \
+    explicitshaperegressor.h \
+    transform.hpp \
+    testarmadillo.h \
+    numerical.hpp \
+    testtransform.h \
+    facedetector.h
 
 INCLUDEPATH += /usr/local/include
-LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc
+LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_objdetect
+
+macx: LIBS += -framework Accelerate
 
 INCLUDEPATH += $$PWD/../../../../Utils/PhGLib/include
-macx: CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../Utils/PhGLib/lib/debug/ -lPhGLib
-else:max: CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../Utils/PhGLib/lib/release/ -lPhGLib
+LIBS += -L$$PWD/../../../../Utils/PhGLib/lib/release -lPhGLib
 
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../Utils/armadillo-4.450.2/release/ -larmadillo
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../Utils/armadillo-4.450.2/debug/ -larmadillo
+else:unix: LIBS += -L$$PWD/../../../../Utils/armadillo-4.450.2/ -larmadillo
+
+INCLUDEPATH += $$PWD/../../../../Utils/armadillo-4.450.2/include
+DEPENDPATH += $$PWD/../../../../Utils/armadillo-4.450.2/include
+
+/Users/phg/Utils/libface/build/src
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../Utils/libface/lib/ -lface
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../Utils/libface/lib/ -lface
+else:unix: LIBS += -L$$PWD/../../../../Utils/libface/lib/ -lface
+
+INCLUDEPATH += $$PWD/../../../../Utils/libface/include
+DEPENDPATH += $$PWD/../../../../Utils/libface/include

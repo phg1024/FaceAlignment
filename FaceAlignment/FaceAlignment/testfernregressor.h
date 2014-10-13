@@ -38,7 +38,8 @@ namespace FATest {
         for(auto sidx : sampleIndices) {
           val += (samples[sidx].second - guess[sidx]);
         }
-        val /= sampleIndices.size();
+        if( !sampleIndices.empty() )
+          val /= sampleIndices.size();
         return val;
       }
     };
@@ -63,12 +64,17 @@ namespace FATest {
     }
     
     void testFerns() {
-      typedef FernRegressor<InputType, OutputType, Estimator, 3> fern_t;
+      typedef FernRegressor<InputType, OutputType, Estimator> fern_t;
       int T = 4;  // number of stages
       int K = 20; // number of ferns in each stage
       typedef vector<fern_t> stage_t;
       vector<stage_t> stages(T);
-      for(auto &stage : stages) stage.resize(K);
+      for(auto &stage : stages) {
+        stage.resize(K);
+        for(auto &fern : stage) {
+          fern.resize(3);
+        }
+      }
       
       const int nTraingSamples = 10;
       const int nTestSamples = 2;
@@ -79,28 +85,32 @@ namespace FATest {
       for(int i=0;i<T;++i) {
         for(int j=0;j<K;++j) {
           auto &fern = stages[i][j];
+          //cout << "training fern " << i << ", " << j << endl;
           fern.train(trainingSet, guess);
           
           // update guess
           auto delta = fern.evaluate(trainingSet);
-          cout << "j = " << j << endl;
+          //cout << "j = " << j << endl;
           for(int k=0;k<guess.size();++k) {
-            cout << guess[k] - trainingSet[k].second << ", ";
+            //cout << guess[k] - trainingSet[k].second << ", ";
             guess[k] += delta[k];
           }
-          cout << endl;
+          //cout << endl;
         }
       }
-      
+
       vector<double> deltaval;
       vector<double> result(nTestSamples, 3.5);
       for(int i=0;i<T;++i) {
         for(int j=0;j<K;++j) {
           auto &fern = stages[i][j];
+          //cout << "evaluating fern " << i << ", " << j << endl;
           deltaval = fern.evaluate(testSet);
           for(int k=0;k<result.size();++k) {
+            //cout << deltaval[k] << ' ';
             result[k] += deltaval[k];
           }
+          //cout << endl;
         }
       }
       double sum=0.0;

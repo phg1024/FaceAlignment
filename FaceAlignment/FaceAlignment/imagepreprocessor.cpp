@@ -1,4 +1,5 @@
 #include "imagepreprocessor.h"
+#include "facedetector.h"
 
 #include "Utils/stringutils.h"
 
@@ -6,17 +7,12 @@
 #include "opencv2/imgproc/imgproc.hpp"
 using namespace cv;
 
-ImagePreprocessor::ImagePreprocessor(const string &imgfile, const string &ptsfile) {
-
-  process(imgfile, ptsfile);
-
-  //waitKey(0); //wait infinite time for a keypress
-
-  //exit(0);
-  //std::this_thread::sleep_for (std::chrono::seconds(1));
-}
+ImagePreprocessor::ImagePreprocessor() {}
 
 void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
+  FaceDetector::detectFace(imgfile);
+
+
   Mat img = imread(imgfile.c_str(), CV_LOAD_IMAGE_UNCHANGED); //read the image data in the file "MyPic.JPG" and store it in 'img'
 
   if (img.empty()) //check whether the image is loaded or not
@@ -73,7 +69,7 @@ void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
   cout << "maxdim = " << maxdim * 2 << endl;
 
   double w = maxpt.x - minpt.x, h = maxpt.y - minpt.y;
-  double scale = 1.5;
+  double scale = 4.0;
   w *= scale;
   h *= scale;
   double imgsize = min(max(w, h), maxdim*2);
@@ -88,7 +84,8 @@ void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
   Mat subimg = img(cv::Rect(minpt.x, minpt.y, imgsize, imgsize));
 
   // scale it
-  Size size(128,128);//the dst image size,e.g.100x100
+  const double targetSize = 256.0;
+  Size size(targetSize, targetSize);
   Mat regimg; // regular image
   resize(subimg, regimg, size);//resize image
 
@@ -102,7 +99,7 @@ void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
   }
 
   // scaling factor
-  double sfactor = 128.0 / imgsize;
+  double sfactor = targetSize / imgsize;
   cout << "scale = " << sfactor << endl;
 
   // transform all points
@@ -115,12 +112,20 @@ void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
     //circle(outimg, Point(npi.x, npi.y), 2, Scalar(0, 255, 0));
   }
 
-  namedWindow("cutted", CV_WINDOW_AUTOSIZE); //create a window with the name "MyWindow"
-  imshow("cutted", outimg); //display the image which is stored in the 'img' in the "MyWindow" window
+  //namedWindow("cutted", CV_WINDOW_AUTOSIZE); //create a window with the name "MyWindow"
+  //imshow("cutted", outimg); //display the image which is stored in the 'img' in the "MyWindow" window
 
   // save it
   string outputfile = imgfile.substr(0, imgfile.size()-4) + "_cutted.png";
   imwrite(outputfile, outimg);
+
+  // save a version with points
+  for(int i=0;i<npoints;++i) {
+    point_t npi = npts[i];
+    circle(regimg, Point(npi.x, npi.y), 2, Scalar(0, 255, 0));
+  }
+  string outputfile2 = imgfile.substr(0, imgfile.size()-4) + "_cutted_with_points.png";
+  imwrite(outputfile2, regimg);
 
   string outptsfile = ptsfile.substr(0, ptsfile.size()-4) + "_cutted.pts";
   ofstream fout(outptsfile);
@@ -129,4 +134,10 @@ void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
     fout << npts[i].x << ' ' << npts[i].y << endl;
   }
   fout.close();
+
+
+  //waitKey(0); //wait infinite time for a keypress
+
+  //exit(0);
+  //std::this_thread::sleep_for (std::chrono::seconds(1));
 }

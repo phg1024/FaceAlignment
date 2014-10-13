@@ -6,9 +6,7 @@
 class ImagePreprocessor
 {
 public:
-  ImagePreprocessor(const string &imgfile, const string &ptsfile);
-
-protected:
+  ImagePreprocessor();
   void process(const string &imgfile, const string &ptsfile);
 
 private:

@@ -11,14 +11,20 @@
 
 #include "common.h"
 
-template <typename InputType, typename OutputType, class Estimator, int N>
+template <typename InputType, typename OutputType, class Estimator>
 class FernRegressor {
 public:
   typedef InputType input_t;
   typedef OutputType output_t;
   typedef pair<input_t, output_t> sample_t;
   
-  FernRegressor();
+  FernRegressor(){}
+  FernRegressor(size_t N);
+
+  void resize(int size) {
+    N = size;
+    bins.resize(1<<N);
+  }
   
   void train(const vector<sample_t> &trainingSet, const vector<output_t> &currentGuess);
   output_t evaluate(const input_t &input);
@@ -28,17 +34,18 @@ protected:
   idx_t computeBinIndex(const input_t &input);
   
 private:
+  size_t N;
   vector<output_t> bins;
   
 };
 
-template <typename InputType, typename OutputType, class Estimator, int N>
-FernRegressor<InputType, OutputType, Estimator, N>::FernRegressor() {
+template <typename InputType, typename OutputType, class Estimator>
+FernRegressor<InputType, OutputType, Estimator>::FernRegressor(size_t N):N(N) {
   bins.resize(1<<N);
 }
 
-template <typename InputType, typename OutputType, class Estimator, int N>
-void FernRegressor<InputType, OutputType, Estimator, N>::train(const vector<FernRegressor::sample_t> &trainingSet, const vector<output_t> &guess) {
+template <typename InputType, typename OutputType, class Estimator>
+void FernRegressor<InputType, OutputType, Estimator>::train(const vector<FernRegressor::sample_t> &trainingSet, const vector<output_t> &guess) {
   vector<set<int>> histogram(bins.size());
   
   /// distribute all training samples to the bins
@@ -54,8 +61,8 @@ void FernRegressor<InputType, OutputType, Estimator, N>::train(const vector<Fern
   }
 }
 
-template <typename InputType, typename OutputType, class Estimator, int N>
-idx_t FernRegressor<InputType, OutputType, Estimator, N>::computeBinIndex(const FernRegressor::input_t &input) {
+template <typename InputType, typename OutputType, class Estimator>
+idx_t FernRegressor<InputType, OutputType, Estimator>::computeBinIndex(const FernRegressor::input_t &input) {
   idx_t binIdx = 0;
   for(int i=0;i<N;++i) {
     binIdx <<= 1;
@@ -64,14 +71,14 @@ idx_t FernRegressor<InputType, OutputType, Estimator, N>::computeBinIndex(const 
   return binIdx;
 }
 
-template <typename InputType, typename OutputType, class Estimator, int N>
-typename FernRegressor<InputType, OutputType, Estimator, N>::output_t FernRegressor<InputType, OutputType, Estimator, N>::evaluate(const FernRegressor::input_t &input) {
+template <typename InputType, typename OutputType, class Estimator>
+typename FernRegressor<InputType, OutputType, Estimator>::output_t FernRegressor<InputType, OutputType, Estimator>::evaluate(const FernRegressor::input_t &input) {
   idx_t binIdx = computeBinIndex(input);
   return bins[binIdx];
 }
 
-template <typename InputType, typename OutputType, class Estimator, int N>
-vector<typename FernRegressor<InputType, OutputType, Estimator, N>::output_t> FernRegressor<InputType, OutputType, Estimator, N>::evaluate(const vector<FernRegressor::sample_t> &testSet) {
+template <typename InputType, typename OutputType, class Estimator>
+vector<typename FernRegressor<InputType, OutputType, Estimator>::output_t> FernRegressor<InputType, OutputType, Estimator>::evaluate(const vector<FernRegressor::sample_t> &testSet) {
   vector<output_t> results(testSet.size());
   for(int i=0;i<testSet.size();++i) {
     results[i] = evaluate(testSet[i].first);
