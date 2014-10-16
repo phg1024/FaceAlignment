@@ -5,17 +5,25 @@
 #include "Utils/utility.hpp"
 using namespace PhGUtils;
 
-#include <armadillo>
-using namespace arma;
+#include "numerical.hpp"
+
+#include "opencv2/video/video.hpp"
+
 
 template <typename T>
 class Transform
 {
 public:
-  static Matrix3x3<T> estimateTransformMatrix(const vector<Point2<T>> &from,
-                                              const vector<Point2<T>> &to);
+  static Matrix3x3<T> estimateTransformMatrix(const arma::vec &from,
+                                              const arma::vec &to);
   static vector<Point2<T>> transform(const vector<Point2<T>> &pts,
                                      const Matrix3x3<T> &M);
+
+  static Matrix3x3<T> estimateTransformMatrix_cv(const arma::vec &from,
+                                           const arma::vec &to);
+
+  static arma::vec transform(const arma::vec &v,
+                             const Matrix3x3<T> &M);
 
 };
 
@@ -30,7 +38,39 @@ vector<Point2<T>> Transform<T>::transform(const vector<Point2<T> > &pts, const M
 }
 
 template <typename T>
-Matrix3x3<T> Transform<T>::estimateTransformMatrix(const vector<Point2<T> > &p, const vector<Point2<T>> &q)
+arma::vec Transform<T>::transform(const arma::vec &v, const Matrix3x3<T> &M)
+{
+  int npts = v.n_elem / 2;
+  arma::vec res(v.n_elem);
+  for(int i=0, j=0;i<npts;++i, j+=2) {
+    double x = v(j), y = v(j+1);
+    auto npt = M * Point2<T>(x, y);
+    res(j) = npt.x;
+    res(j+1) = npt.y;
+  }
+  return res;
+}
+
+
+template <typename T>
+Matrix3x3<T> Transform<T>::estimateTransformMatrix_cv(const arma::vec &p, const arma::vec &q)
+{
+  int n = p.n_elem / 2;
+  vector<cv::Point2f> src(n), dst(n);
+  for(int i=0;i<n;++i) {
+    src[i].x = p(i*2);
+    src[i].y = p(i*2+1);
+    dst[i].x = q(i*2);
+    dst[i].y = q(i*2+1);
+  }
+  cv::Mat M = cv::estimateRigidTransform(src, dst, false);
+  return Matrix3x3<T>(M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2),
+                      M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2),
+                      0, 0, 1);
+}
+
+template <typename T>
+Matrix3x3<T> Transform<T>::estimateTransformMatrix(const arma::vec &p, const arma::vec &q)
 {
   //  % MATLAB implementation
   //  function [s, R, t] = estimateTransform(p, q)
@@ -62,20 +102,22 @@ Matrix3x3<T> Transform<T>::estimateTransformMatrix(const vector<Point2<T> > &p, 
 
   //cout << "estimating tranformation matrix ..." << endl;
 
-  assert(p.size() == q.size());
-  int n = p.size();
+  //cout << p.n_elem << ", " << q.n_elem << endl;
+  assert(p.n_elem == q.n_elem);
+
+  int n = p.n_elem / 2;
   assert(n>0);
   const int m = 2;
 
-  cout << "n = " << n << endl;
+  //cout << "n = " << n << endl;
 
   mat pmat(n, 2), qmat(n, 2);
-  for(int i=0;i<n;++i) {
-    pmat(i, 0) = p[i].x;
-    pmat(i, 1) = p[i].y;
+  for(int i=0, j=0;i<n;++i, j+=2) {
+    pmat(i, 0) = p(j);
+    pmat(i, 1) = p(j+1);
 
-    qmat(i, 0) = q[i].x;
-    qmat(i, 1) = q[i].y;
+    qmat(i, 0) = q(j);
+    qmat(i, 1) = q(j+1);
   }
 
   mat mu_p = mean(pmat);
@@ -97,12 +139,14 @@ Matrix3x3<T> Transform<T>::estimateTransformMatrix(const vector<Point2<T> > &p, 
   vec D;
   svd(U, D, V, sig_pq);
 
+  /*
   cout << U << endl;
   cout << D << endl;
   cout << V << endl;
+  */
 
   mat R = U * S * trans(V);
-  cout << R << endl;
+  //cout << R << endl;
   double s = trace(diagmat(D) * S)/sig_p2;
   vec t = trans(mu_q) - s * R * trans(mu_p);
 

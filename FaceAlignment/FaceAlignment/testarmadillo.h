@@ -4,8 +4,7 @@
 #define ARMA_USE_LAPACK
 #define ARMA_USE_BLAS
 
-#include <armadillo>
-using namespace arma;
+#include "numerical.hpp"
 
 namespace FATest {
 namespace AramdilloTest {
@@ -23,7 +22,7 @@ void testArmadillo() {
   svd(U, s, V, A);
   cout << A << endl;
   cout << U * diagmat(s) * trans(V) << endl;
-
+  cout << "done." << endl;
 }
 
 }

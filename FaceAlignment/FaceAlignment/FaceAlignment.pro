@@ -26,7 +26,7 @@ HEADERS += \
     facedetector.h
 
 INCLUDEPATH += /usr/local/include
-LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_objdetect
+LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_objdetect -lopencv_video
 
 macx: LIBS += -framework Accelerate
 

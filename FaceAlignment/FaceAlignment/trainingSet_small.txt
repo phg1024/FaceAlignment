@@ -1,0 +1,15 @@
+<dataset>
+<path>/Users/phg/Data/lfpw/trainset</path>
+<prefix>image_</prefix>
+<postfix>_cutted</postfix>
+<digits>4</digits>
+<imgext>.png</imgext>
+<ptsext>.pts</ptsext>
+<indices>1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 25 26 27 28 29 30 32 33 34 35 36 37 38 39 40</indices>
+<beta description="free shrinkage parameter">1000</beta>
+<F description="features in each fern">5</F>
+<G description="replica of original data">20</G>
+<T description="number of stages">10</T>
+<K description="number of ferns">500</K>
+<P description="number of samples">400</P>
+</dataset>

@@ -17,7 +17,6 @@ using namespace std;
 
 void runTests() {
   cout << "running tests..." << endl;
-  FATest::FernTest::testFerns();
   FATest::AramdilloTest::testArmadillo();
   FATest::TransformTest::testTransform();
 }
