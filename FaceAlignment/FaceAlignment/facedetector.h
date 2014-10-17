@@ -39,27 +39,26 @@ public:
 
     //Make an instance of LibFace class with appropriate parameters
     LibFace* libFace = new LibFace(mode);
-    vector<Face*>* result = libFace->detectFaces(filename);
+    vector<Face> result = libFace->detectFaces(filename);
 
-    cout << "detected faces: " << result->size() << endl;
+    cout << "detected faces: " << result.size() << endl;
     /* go through all the detected faces, and draw them into the input image */
-    for (int i = 0; i < (result ? result->size() : 0); i++)
+    for (int i = 0; i < result.size(); i++)
     {
-      Face* face = (*result)[i];
-      cout << face->getX1() << ", "
-           << face->getY1() << ", "
-           << face->getX2() << ", "
-           << face->getY2() << endl;
+      Face &face = result[i];
+      cout << face.getX1() << ", "
+           << face.getY1() << ", "
+           << face.getX2() << ", "
+           << face.getY2() << endl;
       CvPoint ul; CvPoint lr;
-      ul.x = face->getX1(); ul.y = face->getY1();
-      lr.x = face->getX2(); lr.y = face->getY2();
+      ul.x = face.getX1(); ul.y = face.getY1();
+      lr.x = face.getX2(); lr.y = face.getY2();
 
       /* draws a rectangle with given coordinates of the upper left
     and lower right corners into an image */
-      cvRectangle(image, ul, lr, Scalar(0, 0, 255), 3, 8, 0);
+      cvRectangle(image, ul, lr, cv::Scalar(0, 0, 255), 3, 8, 0);
     }
 
-    delete result;
     delete libFace;
 
     /* free up the memory */

@@ -1,5 +1,5 @@
 QT += core widgets xml
-CONFIG += qt c++11
+CONFIG += qt c++11 console
 CONFIG -= app_bundle
 
 SOURCES = \

@@ -32,7 +32,7 @@ RandomForest<DecisionTreeType>::RandomForest(int n) {
 }
 
 template<typename DecisionTreeType>
-typename RandomForest<DecisionTreeType>::data_t RandomForest<DecisionTreeType>::sampleWithReplacement(const RandomForest::data_t &data) {
+typename RandomForest<DecisionTreeType>::data_t RandomForest<DecisionTreeType>::sampleWithReplacement(const typename RandomForest::data_t &data) {
   size_t n = data.sampleCount();
   // Seed with a real random value, if available
   std::random_device rd;
@@ -51,7 +51,7 @@ typename RandomForest<DecisionTreeType>::data_t RandomForest<DecisionTreeType>::
 }
 
 template<typename DecisionTreeType>
-void RandomForest<DecisionTreeType>::train(const RandomForest::data_t &data) {
+void RandomForest<DecisionTreeType>::train(const typename RandomForest::data_t &data) {
   int tidx = 0;
   for(auto &t : trees) {
     /// generate a sampling of the data
@@ -62,7 +62,7 @@ void RandomForest<DecisionTreeType>::train(const RandomForest::data_t &data) {
 }
 
 template<typename DecisionTreeType>
-vector<int> RandomForest<DecisionTreeType>::classify(const RandomForest::data_t &data) {
+vector<int> RandomForest<DecisionTreeType>::classify(const typename RandomForest::data_t &data) {
   vector<int> clabs(data.sampleCount());
   for(int i=0;i<data.sampleCount();++i) {
     auto &sample = data.sample(i);
@@ -72,7 +72,7 @@ vector<int> RandomForest<DecisionTreeType>::classify(const RandomForest::data_t 
 }
 
 template<typename DecisionTreeType>
-int RandomForest<DecisionTreeType>::classify_item(const RandomForest::item_t &item, int nclasses) {
+int RandomForest<DecisionTreeType>::classify_item(const typename RandomForest::item_t &item, int nclasses) {
   vector<int> counter(nclasses, 0);
   for(auto &t : trees) {
     int clab = t.classify_item(item);

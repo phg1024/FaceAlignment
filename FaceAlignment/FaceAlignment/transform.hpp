@@ -14,21 +14,21 @@ template <typename T>
 class Transform
 {
 public:
-  static Matrix3x3<T> estimateTransformMatrix(const arma::vec &from,
+  static pair<Matrix2x2<T>, Point2<T>> estimateTransformMatrix(const arma::vec &from,
                                               const arma::vec &to);
   static vector<Point2<T>> transform(const vector<Point2<T>> &pts,
-                                     const Matrix3x3<T> &M);
+                                     const Matrix2x2<T> &M);
 
-  static Matrix3x3<T> estimateTransformMatrix_cv(const arma::vec &from,
+  static pair<Matrix2x2<T>, Point2<T>> estimateTransformMatrix_cv(const arma::vec &from,
                                            const arma::vec &to);
 
   static arma::vec transform(const arma::vec &v,
-                             const Matrix3x3<T> &M);
+                             const Matrix2x2<T> &M);
 
 };
 
 template <typename T>
-vector<Point2<T>> Transform<T>::transform(const vector<Point2<T> > &pts, const Matrix3x3<T> &M)
+vector<Point2<T>> Transform<T>::transform(const vector<Point2<T> > &pts, const Matrix2x2<T> &M)
 {
   vector<Point2<T>> pts_trans = pts;
   for(auto &p : pts_trans) {
@@ -38,7 +38,7 @@ vector<Point2<T>> Transform<T>::transform(const vector<Point2<T> > &pts, const M
 }
 
 template <typename T>
-arma::vec Transform<T>::transform(const arma::vec &v, const Matrix3x3<T> &M)
+arma::vec Transform<T>::transform(const arma::vec &v, const Matrix2x2<T> &M)
 {
   int npts = v.n_elem / 2;
   arma::vec res(v.n_elem);
@@ -53,7 +53,7 @@ arma::vec Transform<T>::transform(const arma::vec &v, const Matrix3x3<T> &M)
 
 
 template <typename T>
-Matrix3x3<T> Transform<T>::estimateTransformMatrix_cv(const arma::vec &p, const arma::vec &q)
+pair<Matrix2x2<T>, Point2<T>> Transform<T>::estimateTransformMatrix_cv(const arma::vec &p, const arma::vec &q)
 {
   int n = p.n_elem / 2;
   vector<cv::Point2f> src(n), dst(n);
@@ -64,13 +64,19 @@ Matrix3x3<T> Transform<T>::estimateTransformMatrix_cv(const arma::vec &p, const 
     dst[i].y = q(i*2+1);
   }
   cv::Mat M = cv::estimateRigidTransform(src, dst, false);
-  return Matrix3x3<T>(M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2),
-                      M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2),
-                      0, 0, 1);
+  if (M.empty()) {
+	  cout << "empty matrix" << endl;
+	  return Transform<T>::estimateTransformMatrix(p, q);
+  }
+  else
+	  return make_pair(
+		Matrix2x2<T>(M.at<double>(0, 0), M.at<double>(0, 1),
+		M.at<double>(1, 0), M.at<double>(1, 1)),
+		Point2<T>(M.at<double>(0, 2), M.at<double>(1, 2)));
 }
 
 template <typename T>
-Matrix3x3<T> Transform<T>::estimateTransformMatrix(const arma::vec &p, const arma::vec &q)
+pair<Matrix2x2<T>, Point2<T>> Transform<T>::estimateTransformMatrix(const arma::vec &p, const arma::vec &q)
 {
   //  % MATLAB implementation
   //  function [s, R, t] = estimateTransform(p, q)
@@ -133,7 +139,7 @@ Matrix3x3<T> Transform<T>::estimateTransformMatrix(const arma::vec &p, const arm
 
   double det_sig_pq = det(sig_pq);
   mat S = eye(m, m);
-  if( det_sig_pq < 0 ) S(m, m) = -1;
+  //if( det_sig_pq < 0 ) S(m-1, m-1) = -1;
 
   mat U, V;
   vec D;
@@ -150,9 +156,9 @@ Matrix3x3<T> Transform<T>::estimateTransformMatrix(const arma::vec &p, const arm
   double s = trace(diagmat(D) * S)/sig_p2;
   vec t = trans(mu_q) - s * R * trans(mu_p);
 
-  return Matrix3x3<T>(s * R(0, 0), s * R(0, 1), t(0),
-           s * R(1, 0), s * R(1, 1), t(1),
-           0, 0, 1);
+  R = R * s;
+  return make_pair(Matrix2x2<T>(R(0, 0), R(0, 1), R(1, 0), R(1, 1)),
+	  Point2<T>(t(0), t(1)));
 }
 
 #endif // TRANSFORM_H

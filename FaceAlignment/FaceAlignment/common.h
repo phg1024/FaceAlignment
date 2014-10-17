@@ -9,6 +9,11 @@
 #ifndef FaceAlignment_common_h
 #define FaceAlignment_common_h
 
+#ifdef WIN32
+#define NOMINMAX
+#include <Windows.h>
+#endif
+
 #include <unordered_map>
 #include <map>
 #include <unordered_set>

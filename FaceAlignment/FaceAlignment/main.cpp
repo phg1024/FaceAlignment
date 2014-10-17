@@ -1,3 +1,5 @@
+#include "common.h"
+
 #include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QLabel>
@@ -5,6 +7,8 @@
 
 #include <iostream>
 using namespace std;
+
+#include "Utils/console.h"
 
 #include "imagepreprocessor.h"
 #include "explicitshaperegressor.h"
@@ -24,6 +28,7 @@ void runTests() {
 
 int main(int argc, char **argv)
 {
+  //createConsole();
   runTests();  
 
   QCoreApplication app(argc, argv);
@@ -68,8 +73,8 @@ int main(int argc, char **argv)
   else if( parser.isSet(trainOption) ) {
     qDebug() << "Training regressor with samples file "  << parser.value("train") << " and output file " << parser.value("output");
     ExplicitShapeRegressor r;
-    r.train(parser.value("train").toStdString());
-    r.write(parser.value("output").toStdString());
+    r.train(parser.value("train").toUtf8().constData());
+    r.write(parser.value("output").toUtf8().constData());
   }
   else if( parser.isSet(testOption)) {
     qDebug() << "Evaluating test samples in file " << parser.value("test") << " with regressor " << parser.value("regressor");
@@ -78,5 +83,5 @@ int main(int argc, char **argv)
     r.evaluate(parser.value("test").toStdString());
   }
 
-  return 0;// app.exec();
+  return 0;
 }

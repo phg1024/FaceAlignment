@@ -315,7 +315,7 @@ private:
 };
 
 template <typename SampleType, class NodeType, class SplittingStrategy>
-void DecisionTree<SampleType, NodeType, SplittingStrategy>::train(const DecisionTree::data_t &data) {
+void DecisionTree<SampleType, NodeType, SplittingStrategy>::train(const typename DecisionTree::data_t &data) {
   set<int> dimensions;
   set<int> samples;
   size_t n = data.sampleCount();
@@ -360,7 +360,7 @@ void DecisionTree<SampleType, NodeType, SplittingStrategy>::train(const Decision
 }
 
 template <typename SampleType, class NodeType, class SplittingStrategy>
-int DecisionTree<SampleType, NodeType, SplittingStrategy>::classify_item(const DecisionTree::item_t &item) {
+int DecisionTree<SampleType, NodeType, SplittingStrategy>::classify_item(const typename DecisionTree::item_t &item) {
   shared_ptr<node_t> node = root;
   while( true ) {
     if( node->isLeaf ) return node->clabel;
@@ -376,7 +376,7 @@ int DecisionTree<SampleType, NodeType, SplittingStrategy>::classify_item(const D
 }
 
 template <typename SampleType, class NodeType, class SplittingStrategy>
-vector<int> DecisionTree<SampleType, NodeType, SplittingStrategy>::classify(const DecisionTree::data_t &data) {
+vector<int> DecisionTree<SampleType, NodeType, SplittingStrategy>::classify(const typename DecisionTree::data_t &data) {
   vector<int> clabs;
   for(int i=0;i<data.sampleCount();++i) {
     auto &sample = data.sample(i);

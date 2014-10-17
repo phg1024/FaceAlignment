@@ -15,7 +15,7 @@ void testTransform() {
   std::default_random_engine e1(rd());
   std::uniform_int_distribution<int> uniform_dist(0, 10);
 
-  const int n = 5;
+  const int n = 68;
   vec pts(n*2);
   for(int i=0;i<n;++i) {
     pts(i*2) = uniform_dist(e1);
@@ -33,11 +33,18 @@ void testTransform() {
   };
 
   cout << "estimating transformation matrix ..." << endl;
-  Matrix3x3<double> Mest = Transform<double>::estimateTransformMatrix(pts, newpts);
-  Matrix3x3<double> Mest_cv = Transform<double>::estimateTransformMatrix_cv(pts, newpts);
+  auto MTest = Transform<double>::estimateTransformMatrix(pts, newpts);
+  Matrix2x2<double> Mest = MTest.first;
+  Point2<double> Test = MTest.second;
+  auto MTest_cv = Transform<double>::estimateTransformMatrix_cv(pts, newpts);
+  Matrix2x2<double> Mest_cv = MTest_cv.first;
+  Point2<double> Test_cv = MTest_cv.second;
   cout << M << endl;
-  cout << Mest << endl;
-  cout << Mest_cv << endl;
+  cout << Mest << "; " << Test << endl;
+  cout << Mest_cv << "; " << Test_cv << endl;
+
+  cout << M * M.inv() << endl;
+  cout << Mest * Mest.inv() << endl;
 
   cout << "done." << endl;
 }

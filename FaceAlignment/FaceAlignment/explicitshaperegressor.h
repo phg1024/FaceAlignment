@@ -40,6 +40,7 @@ private:
   struct ImageData {
     void loadImage(const string &filename);
     void loadPoints(const string &filename);
+	void show();
     cv::Mat img;
     ShapeVector truth;
     ShapeVector guess;
@@ -69,6 +70,7 @@ protected:
   vector<set<int> > partitionSamplesIntoBins(const mat &rho, const vector<FernFeature> &features, const vec &thresholds);
   mat computeBinOutputs(const vector<set<int> > &bins);
   ExplicitShapeRegressor::ShapeVector applyStageRegressor(int sidx, int stageIdx);
+
 private:
 
   struct RegressorSetting {
@@ -81,7 +83,7 @@ private:
   vector<ImageData> data;
   vector<ImageData> trainingData;
   vector<ShapeVector> normalizedShapeTargets;
-  vector<PhGUtils::Matrix3x3<double>> normalizationMatrices;
+  vector<PhGUtils::Matrix2x2<double>> normalizationMatrices;
   vector<ExplicitShapeRegressor::LocalCoordinates> localCoords;
   vector<ExplicitShapeRegressor::ShapeIndexedPixels> sipixels;
   typedef vector<FernFeature> featureselector_t;
