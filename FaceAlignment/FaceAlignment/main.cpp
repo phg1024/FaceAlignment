@@ -8,7 +8,9 @@
 #include <iostream>
 using namespace std;
 
+#ifdef WIN32
 #include "Utils/console.h"
+#endif
 
 #include "imagepreprocessor.h"
 #include "explicitshaperegressor.h"

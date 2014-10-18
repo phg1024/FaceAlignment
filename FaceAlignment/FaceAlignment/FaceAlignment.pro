@@ -44,7 +44,7 @@ DEPENDPATH += $$PWD/../../../../Utils/armadillo-4.450.2/include
 /Users/phg/Utils/libface/build/src
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../Utils/libface/lib/ -lface
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../Utils/libface/lib/ -lface
-else:unix: LIBS += -L$$PWD/../../../../Utils/libface/lib/ -lface
+else:unix: LIBS += -L$$PWD/../../../../Utils/libface-0.1/lib/ -lface
 
-INCLUDEPATH += $$PWD/../../../../Utils/libface/include
-DEPENDPATH += $$PWD/../../../../Utils/libface/include
+INCLUDEPATH += $$PWD/../../../../Utils/libface-0.1/include
+DEPENDPATH += $$PWD/../../../../Utils/libface-0.1/include

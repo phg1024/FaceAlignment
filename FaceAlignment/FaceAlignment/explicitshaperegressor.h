@@ -40,7 +40,7 @@ private:
   struct ImageData {
     void loadImage(const string &filename);
     void loadPoints(const string &filename);
-	void show();
+    void show(const string &title="image");
     cv::Mat img;
     ShapeVector truth;
     ShapeVector guess;
@@ -74,7 +74,7 @@ protected:
 private:
 
   struct RegressorSetting {
-    RegressorSetting():F(5), K(500), P(400), T(10), G(20), beta(1000.0), kappa(10.0){}
+    RegressorSetting():F(5), K(500), P(400), T(10), G(20), beta(1000.0), kappa(50.0){}
     int F, K, P, T, G, N, Nfp;
     int w, h;
     double beta, kappa;

@@ -117,14 +117,9 @@ pair<Matrix2x2<T>, Point2<T>> Transform<T>::estimateTransformMatrix(const arma::
 
   //cout << "n = " << n << endl;
 
-  mat pmat(n, 2), qmat(n, 2);
-  for(int i=0, j=0;i<n;++i, j+=2) {
-    pmat(i, 0) = p(j);
-    pmat(i, 1) = p(j+1);
-
-    qmat(i, 0) = q(j);
-    qmat(i, 1) = q(j+1);
-  }
+  mat pmat = p, qmat = q;
+  pmat.reshape(n, 2);
+  qmat.reshape(n, 2);
 
   mat mu_p = mean(pmat);
   mat mu_q = mean(qmat);
