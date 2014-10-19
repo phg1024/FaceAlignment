@@ -65,7 +65,7 @@ pair<Matrix2x2<T>, Point2<T>> Transform<T>::estimateTransformMatrix_cv(const arm
   }
   cv::Mat M = cv::estimateRigidTransform(src, dst, false);
   if (M.empty()) {
-	  cout << "empty matrix" << endl;
+    //cout << "empty matrix" << endl;
 	  return Transform<T>::estimateTransformMatrix(p, q);
   }
   else

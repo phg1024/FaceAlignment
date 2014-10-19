@@ -27,6 +27,19 @@ public:
   }
 
   OutputType evaluate(const InputType &input);
+  const InputType& getThresholds() const {
+    return thresholds;
+  }
+  const vector<OutputType>& getOutputs() const {
+    return outputs;
+  }
+
+  InputType& getThresholds() {
+    return thresholds;
+  }
+  vector<OutputType>& getOutputs() {
+    return outputs;
+  }
 
 protected:
   int computeBinIndex(const InputType &input);

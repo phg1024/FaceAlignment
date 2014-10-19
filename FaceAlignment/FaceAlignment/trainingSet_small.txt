@@ -9,7 +9,7 @@
 <beta description="free shrinkage parameter">1000</beta>
 <F description="features in each fern">5</F>
 <G description="replica of original data">20</G>
-<T description="number of stages">10</T>
-<K description="number of ferns">500</K>
+<T description="number of stages">200</T>
+<K description="number of ferns">25</K>
 <P description="number of samples">400</P>
 </dataset>

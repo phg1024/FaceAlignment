@@ -39,9 +39,11 @@ private:
 
   struct ImageData {
     void loadImage(const string &filename);
+    void loadGeneralImage(const string &filename);
     void loadPoints(const string &filename);
-    void show(const string &title="image");
+    void show(const string &title="image") const;
     cv::Mat img;
+    cv::Mat original;
     ShapeVector truth;
     ShapeVector guess;
   };
@@ -58,19 +60,21 @@ private:
 protected:
   void trainWithSamples(const map<string, string> &configs, const vector<int> &indices = vector<int>());
   void loadData(const map<string, string> &configs, const vector<int> &indices = vector<int>());
-  void createFerns();
+  void initializeRegressor();
   void generateInitialShapes();
   void trainRegressors();
   void computeNormalizedShapeTargets();
   void learnStageRegressor(int stageIdx);
   void updateGuessShapes(int stageIdx);
-  vector<LocalCoordinates> generateLocalCoordiantes();
+  vector<LocalCoordinates> generateLocalCoordiantes(int stageIdx);
   vector<ShapeIndexedPixels> extractShapeIndexedPixels(const vector<LocalCoordinates> &localCoords);
   vector<ExplicitShapeRegressor::FernFeature> correlationBasedFeatureSelection(const mat &Y, const mat &rho, const mat &covRho);
   vector<set<int> > partitionSamplesIntoBins(const mat &rho, const vector<FernFeature> &features, const vec &thresholds);
   mat computeBinOutputs(const vector<set<int> > &bins);
   ExplicitShapeRegressor::ShapeVector applyStageRegressor(int sidx, int stageIdx);
 
+  void evaluateImages(const map<string, string> &configs, const vector<int> &indices = vector<int>());
+  void evaluateImage(const ImageData &imgdata);
 private:
 
   struct RegressorSetting {
@@ -81,10 +85,11 @@ private:
   };
 
   vector<ImageData> data;
+  ShapeVector meanShape;
   vector<ImageData> trainingData;
   vector<ShapeVector> normalizedShapeTargets;
   vector<PhGUtils::Matrix2x2<double>> normalizationMatrices;
-  vector<ExplicitShapeRegressor::LocalCoordinates> localCoords;
+  vector<vector<ExplicitShapeRegressor::LocalCoordinates>> localCoords;
   vector<ExplicitShapeRegressor::ShapeIndexedPixels> sipixels;
   typedef vector<FernFeature> featureselector_t;
   vector<vector<featureselector_t>> featureSelectors;
