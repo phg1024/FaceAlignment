@@ -107,7 +107,7 @@ void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
   cout << "maxdim = " << maxdim * 2 << endl;
 
   double w = maxpt.x - minpt.x, h = maxpt.y - minpt.y;
-  double scale = 4.0;
+  double scale = 1.5;
   w *= scale;
   h *= scale;
   double imgsize = min(max(w, h), maxdim*2);

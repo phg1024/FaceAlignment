@@ -112,11 +112,22 @@ void ExplicitShapeRegressor::generateInitialShapes() {
 }
 
 void ExplicitShapeRegressor::trainRegressors() {
+  /// compute mean shape
+  /// simply the ground truth of a training shape as the mean shape
+  meanShape = vec(settings.Nfp*2, fill::zeros);
+  for(int i=0;i<settings.N;++i) {
+    meanShape += trainingData[i].guess;
+  }
+  meanShape /= settings.N;
+
+  Mrho = arma::mat(settings.N, settings.P);     /// rho matrix
+  Y = arma::mat(settings.N, settings.Nfp * 2);  /// Y matrix
+
   /// T stages in total
   for(int i=0;i<settings.T;++i) {
     computeNormalizedShapeTargets();
     learnStageRegressor(i);
-    //updateGuessShapes(i);
+    updateGuessShapes(i);
 
     if( i % 100 == 0 )
       for(int j=0;j<100;j+=20)
@@ -126,12 +137,8 @@ void ExplicitShapeRegressor::trainRegressors() {
 
 void ExplicitShapeRegressor::computeNormalizedShapeTargets() {
   //cout << "computing normalized shapes ..." << endl;
-  normalizedShapeTargets.resize(settings.N);
+  //normalizedShapeTargets.resize(settings.N);
   normalizationMatrices.resize(settings.N);
-
-  /// compute mean shape
-  /// simply the ground truth of a training shape as the mean shape
-  meanShape = trainingData[0].truth;
 
   for(int i=0;i<settings.N;++i) {
     //cout << i << endl;
@@ -141,7 +148,8 @@ void ExplicitShapeRegressor::computeNormalizedShapeTargets() {
     //auto normalizedShape = Transform<double>::transform(trainingData[i].guess, M);
     //showPointsWithImage(trainingData[i].img, meanShape, trainingData[i].guess, normalizedShape);
     /// transform the difference between guess and truth to the reference frame
-    normalizedShapeTargets[i] = Transform<double>::transform(trainingData[i].truth - trainingData[i].guess, M);
+    //normalizedShapeTargets[i] = Transform<double>::transform(trainingData[i].truth - trainingData[i].guess, M);
+    Y.row(i) = trans(Transform<double>::transform(trainingData[i].truth - trainingData[i].guess, M));
     //cout << "max(Y0) = " << max(normalizedShapeTargets[i]) << "\t"
     //     << "min(Y0) = " << min(normalizedShapeTargets[i]) << endl;
   }
@@ -163,22 +171,7 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
 
   /// compute pixel-pixel covariance
   //cout << "computing pixel-pixel covariance ..." << endl;
-  mat rho(settings.N, settings.P);
-  for(int i=0;i<settings.N;++i) {
-    for(int j=0;j<settings.P;++j) {
-      rho.at(i, j) = sipixels[i].pixels[j];
-    }
-  }
-  mat covRho = cov(rho);
-  //cout << "done." << endl;
-
-  //cout << "computing matrix Y ..." << endl;
-  mat Y(settings.N, settings.Nfp * 2);  /// Y matrix
-  for(int i=0;i<settings.N;++i) {
-    for(int j=0;j<settings.Nfp*2;++j) {
-      Y(i, j) = normalizedShapeTargets[i](j);
-    }
-  }
+  mat covRho = cov(Mrho);
   //cout << "done." << endl;
 
   std::random_device rd;
@@ -191,12 +184,12 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
     //cout << "stage " << stageIdx << " fern #" << k << endl;
     auto &fsk = fs[k];
     /// select features based on correlation
-    fsk = correlationBasedFeatureSelection(Y, rho, covRho);
+    fsk = correlationBasedFeatureSelection(Y, Mrho, covRho);
     //cout << "features selected ..." << endl;
 
     /// sample F thresholds from a uniform distribution
     vec thresholds(settings.F, fill::randu);
-#if 1
+#if 0
     thresholds = (thresholds - 0.5) * 0.2 * 255.0;
 #else
     for (int fidx = 0; fidx < settings.F; ++fidx) {
@@ -211,7 +204,7 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
 #endif
 
     /// partition training samples into 2^F bins
-    vector<set<int>> bins = partitionSamplesIntoBins(rho, fsk, thresholds);
+    vector<set<int>> bins = partitionSamplesIntoBins(Mrho, fsk, thresholds);
 
     /// compute outputs of all bins
     mat outputs = computeBinOutputs(bins);
@@ -239,7 +232,7 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
 
     Y = Y - updateMat;
 
-#if 1
+#if 0
     /// update each shape
     for(int shapeIdx=0;shapeIdx<settings.N;++shapeIdx) {
       auto &M = normalizationMatrices[shapeIdx];
@@ -248,7 +241,7 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
       for(int fidx=0;fidx<settings.F;++fidx) {
         int m = featureSelectors[stageIdx][k][fidx].m;
         int n = featureSelectors[stageIdx][k][fidx].n;
-        drho(fidx) = (int)sipixels[shapeIdx].pixels[m] - (int)sipixels[shapeIdx].pixels[n];
+        drho(fidx) = Mrho(shapeIdx, m) - Mrho(shapeIdx, n);
       }
       vec ds = R[k].evaluate(drho);
 
@@ -258,11 +251,6 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
     extractShapeIndexedPixels(localCoords[stageIdx]); /// rho
 
     /// compute pixel-pixel covariance
-    for(int i=0;i<settings.N;++i) {
-      for(int j=0;j<settings.P;++j) {
-        rho.at(i, j) = sipixels[i].pixels[j];
-      }
-    }
     covRho = cov(rho);
 #endif
   }
@@ -281,18 +269,20 @@ mat ExplicitShapeRegressor::computeBinOutputs(const vector<set<int>> &bins) {
     }
 
     for(auto sid : bins[i]) {
-      auto &sample = normalizedShapeTargets[sid];
-      for(int j=0;j<settings.Nfp*2;++j) {
-        outputs(i, j) += sample(j);
-      }
+//      auto &sample = Y.row(sid);
+      outputs.row(i) += Y.row(sid);
+//      for(int j=0;j<settings.Nfp*2;++j) {
+//        outputs(i, j) += sample(j);
+//      }
     }
 
     const double factor = 1.0 / ((1 + settings.beta / bins[i].size()) * bins[i].size());
 
-    for(int j=0;j<settings.Nfp*2;++j) {
-      double val = outputs(i, j);
-      outputs(i, j) *= factor;
-    }
+    outputs.row(i) *= factor;
+//    for(int j=0;j<settings.Nfp*2;++j) {
+//      double val = outputs(i, j);
+//      outputs(i, j) *= factor;
+//    }
   }
   return outputs;
 }
@@ -383,13 +373,11 @@ vector<ExplicitShapeRegressor::LocalCoordinates> ExplicitShapeRegressor::generat
   return localCoords[stageIdx];
 }
 
-vector<ExplicitShapeRegressor::ShapeIndexedPixels> ExplicitShapeRegressor::extractShapeIndexedPixels(const vector<ExplicitShapeRegressor::LocalCoordinates> &localCoords) {
-  sipixels.resize(settings.N);
+void ExplicitShapeRegressor::extractShapeIndexedPixels(const vector<ExplicitShapeRegressor::LocalCoordinates> &localCoords) {
 
   /// for each shape, extract P pixels
+  rowvec pixN(settings.P);
   for(int i=0;i<settings.N;++i) {
-    auto &sipixel = sipixels[i];
-    sipixel.shapeIdx = i;
     for(int j=0;j<settings.P;++j) {
       Matrix2x2<double> &M = normalizationMatrices[i];
       auto M_inv = M.inv();
@@ -402,16 +390,15 @@ vector<ExplicitShapeRegressor::ShapeIndexedPixels> ExplicitShapeRegressor::extra
       unsigned char p = 0;
       if( r >= settings.h || r < 0 || c >= settings.w || c < 0 ) {
         // not a valid pixel
+        pixN(j) = 0;
       }
       else {
         p = trainingData[i].img.at<unsigned char>(r, c);
+        pixN(j) = trainingData[i].img.at<unsigned char>(r, c);
       }
-
-      sipixel.pixels.push_back(p);
     }
-
+    Mrho.row(i) = pixN;
   }
-  return sipixels;
 }
 
 void ExplicitShapeRegressor::updateGuessShapes(int stageIdx) {
@@ -496,7 +483,7 @@ ExplicitShapeRegressor::ShapeVector ExplicitShapeRegressor::applyStageRegressor(
     for(int fidx=0;fidx<settings.F;++fidx) {
       int m = featureSelectors[stageIdx][k][fidx].m;
       int n = featureSelectors[stageIdx][k][fidx].n;
-      rho(fidx) = (int)sipixels[sidx].pixels[m] - (int)sipixels[sidx].pixels[n];
+      rho(fidx) = Mrho(sidx, m) - Mrho(sidx, n);
     }
     vec ds = regressors[stageIdx][k].evaluate(rho);
     deltaS += ds;
@@ -589,7 +576,7 @@ void ExplicitShapeRegressor::evaluateImage(const ExplicitShapeRegressor::ImageDa
          << bb.lr.y << endl;
 
     int w = bb.lr.x - bb.ul.x, h = bb.lr.y - bb.ul.y;
-    double scale = 4.0;
+    double scale = 1.5;
     w *= scale;
     h *= scale;
     int imgsize = std::min(std::max(w, h), maxdim*2);
