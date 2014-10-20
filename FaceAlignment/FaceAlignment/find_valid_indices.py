@@ -7,7 +7,8 @@ img_extension = '.png'
 pts_extension = '.pts'
 digits = 4
 #path = '/Users/phg/Data/lfpw/testset/'
-path = '/Users/phg/Data/lfpw/trainset/'
+#path = '/Users/phg/Data/lfpw/trainset/'
+path = 'C:/Users/Peihong/Desktop/Data/Detection/lfpw/trainset/'
 imgcount = 872
 
 def padWith(s, c, L):

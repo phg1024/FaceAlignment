@@ -1,5 +1,5 @@
 <dataset>
-<path>/Users/phg/Data/lfpw/trainset</path>
+<path>C:/Users/Peihong/Desktop/Data/Detection/lfpw/trainset</path>
 <prefix>image_</prefix>
 <postfix></postfix>
 <digits>4</digits>

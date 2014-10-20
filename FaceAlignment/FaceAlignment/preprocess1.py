@@ -5,7 +5,8 @@ basename = 'image_'
 img_extension = '.png'
 pts_extension = '.pts'
 digits = 4
-path = '/Users/phg/Data/lfpw/trainset/'
+#path = '/Users/phg/Data/lfpw/trainset/'
+path = 'C:/Users/Peihong/Desktop/Data/Detection/lfpw/trainset/'
 imgcount = 1
 
 def padWith(s, c, L):
@@ -24,7 +25,9 @@ for i in range(imgcount):
 	if os.path.isfile(imgfile):
 		valid_indices.append(i+1)
 
-		cmd = ['../build-FaceAlignment-Desktop_Qt_5_3_clang_64bit-Release/FaceAlignment',
+		#cmd = ['../build-FaceAlignment-Desktop_Qt_5_3_clang_64bit-Release/FaceAlignment',
+		#       '--preprocess', '--image_file', imgfile, '--point_file', ptsfile]
+		cmd = ['C:/Users/Peihong/Desktop/Code/FaceAlignment/FaceAlignment/FaceAlignment/x64/Release/FaceAlignment.exe',
 		       '--preprocess', '--image_file', imgfile, '--point_file', ptsfile]
 		p = subprocess.Popen(' '.join(cmd), stdout=subprocess.PIPE, shell=True)
 		(output, err) = p.communicate()

@@ -1,0 +1,1 @@
+x64\Release\FaceAlignment.exe --test %1 --regressor %2
