@@ -68,7 +68,7 @@ protected:
   void learnStageRegressor(int stageIdx);
   void updateGuessShapes(int stageIdx);
   vector<LocalCoordinates> generateLocalCoordiantes(int stageIdx);
-  vector<ShapeIndexedPixels> extractShapeIndexedPixels(const vector<LocalCoordinates> &localCoords);
+  void extractShapeIndexedPixels(const vector<LocalCoordinates> &localCoords);
   vector<ExplicitShapeRegressor::FernFeature> correlationBasedFeatureSelection(const mat &Y, const mat &rho, const mat &covRho);
   vector<set<int> > partitionSamplesIntoBins(const mat &rho, const vector<FernFeature> &features, const vec &thresholds);
   mat computeBinOutputs(const vector<set<int> > &bins);
@@ -90,10 +90,11 @@ private:
   ShapeVector meanShape;
   vector<ShapeVector> initShapes;
   vector<ImageData> trainingData;
-  vector<ShapeVector> normalizedShapeTargets;
+  arma::mat Y;
+  arma::mat Mrho;
+  //vector<ShapeVector> normalizedShapeTargets;
   vector<PhGUtils::Matrix2x2<double>> normalizationMatrices;
   vector<vector<ExplicitShapeRegressor::LocalCoordinates>> localCoords;
-  vector<ExplicitShapeRegressor::ShapeIndexedPixels> sipixels;
   typedef vector<FernFeature> featureselector_t;
   vector<vector<featureselector_t>> featureSelectors;
 
