@@ -31,7 +31,7 @@ void runTests() {
 int main(int argc, char **argv)
 {
   //createConsole();
-  runTests();  
+  //runTests();
 
   QCoreApplication app(argc, argv);
   QCoreApplication::setApplicationName("Face alignment program.");

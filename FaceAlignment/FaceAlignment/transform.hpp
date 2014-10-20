@@ -134,7 +134,7 @@ pair<Matrix2x2<T>, Point2<T>> Transform<T>::estimateTransformMatrix(const arma::
 
   double det_sig_pq = det(sig_pq);
   mat S = eye(m, m);
-  //if( det_sig_pq < 0 ) S(m-1, m-1) = -1;
+  if( det_sig_pq < 0 ) S(m-1, m-1) = -1;
 
   mat U, V;
   vec D;

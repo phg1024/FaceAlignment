@@ -86,8 +86,7 @@ void ExplicitShapeRegressor::generateInitialShapes() {
   // Seed with a real random value, if available
   std::random_device rd;
   std::default_random_engine e1(rd());
-  const int maxTemplateCount = 20;
-  std::uniform_int_distribution<int> uniform_dist(0, maxTemplateCount - 1);
+  std::uniform_int_distribution<int> uniform_dist(0, data.size() - 1);
   settings.N = data.size() * settings.G;
   settings.Nfp = data.front().truth.n_elem / 2;
   trainingData.resize(settings.N);
@@ -102,7 +101,7 @@ void ExplicitShapeRegressor::generateInitialShapes() {
       int idx = uniform_dist(e1);
       trainingData[j].img = d.img;
       trainingData[j].truth = d.truth;
-      trainingData[j].guess = data[idx].truth;
+      trainingData[j].guess = initShapes[idx];
       //trainingData[j].guess = d.truth + vec(settings.Nfp*2, fill::randu) * 0.5;
       //trainingData[j].show();
       //cout << j << ", " << idx << ": " << trainingData[j].truth.n_elem << ", " << trainingData[j].guess.n_elem << endl;
@@ -117,7 +116,7 @@ void ExplicitShapeRegressor::trainRegressors() {
   for(int i=0;i<settings.T;++i) {
     computeNormalizedShapeTargets();
     learnStageRegressor(i);
-    updateGuessShapes(i);
+    //updateGuessShapes(i);
 
     if( i % 100 == 0 )
       for(int j=0;j<100;j+=20)
@@ -197,7 +196,7 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
 
     /// sample F thresholds from a uniform distribution
     vec thresholds(settings.F, fill::randu);
-#if 0
+#if 1
     thresholds = (thresholds - 0.5) * 0.2 * 255.0;
 #else
     for (int fidx = 0; fidx < settings.F; ++fidx) {
@@ -239,6 +238,33 @@ void ExplicitShapeRegressor::learnStageRegressor(int stageIdx) {
     cout << "max(Y) = " << max(max(Y)) << " min(Y) = " << min(min(Y)) << endl;
 
     Y = Y - updateMat;
+
+#if 1
+    /// update each shape
+    for(int shapeIdx=0;shapeIdx<settings.N;++shapeIdx) {
+      auto &M = normalizationMatrices[shapeIdx];
+      auto inv_M = M.inv();
+      vec drho(settings.F);
+      for(int fidx=0;fidx<settings.F;++fidx) {
+        int m = featureSelectors[stageIdx][k][fidx].m;
+        int n = featureSelectors[stageIdx][k][fidx].n;
+        drho(fidx) = (int)sipixels[shapeIdx].pixels[m] - (int)sipixels[shapeIdx].pixels[n];
+      }
+      vec ds = R[k].evaluate(drho);
+
+      trainingData[shapeIdx].guess += Transform<double>::transform(ds, inv_M);
+    }
+
+    extractShapeIndexedPixels(localCoords[stageIdx]); /// rho
+
+    /// compute pixel-pixel covariance
+    for(int i=0;i<settings.N;++i) {
+      for(int j=0;j<settings.P;++j) {
+        rho.at(i, j) = sipixels[i].pixels[j];
+      }
+    }
+    covRho = cov(rho);
+#endif
   }
   cout << "done." << endl;
 }
@@ -407,6 +433,60 @@ void ExplicitShapeRegressor::updateGuessShapes(int stageIdx) {
   //cout << endl;
 }
 
+ExplicitShapeRegressor::ShapeVector ExplicitShapeRegressor::applyRegressor(
+    const cv::Mat &I, const ShapeVector &S0) const {
+
+  ShapeVector S = S0;
+  vec rho(settings.F);
+  for(int t=0;t<settings.T;++t) {
+    /// compute the similarity transformation
+    auto params = Transform<double>::estimateTransformMatrix_cv(S, meanShape);
+    Matrix2x2<double> &M = params.first;
+    auto inv_M = M.inv();
+
+    /// extract shape indexed pixels for this stage
+    auto &lc = localCoords[t];
+    ShapeIndexedPixels sp;
+    for(int j=0;j<settings.P;++j) {
+      Point2<double> dp = inv_M * lc[j].pt;
+      //cout << lc[j].fpidx << ':' << lc[j].pt.x << ", " << lc[j].pt.y << endl;
+      double pos_x = S(lc[j].fpidx*2) + dp.x;
+      double pos_y = S(lc[j].fpidx*2+1) + dp.y;
+      int c = round(pos_x);
+      int r = round(pos_y);
+
+      unsigned char p = 0;
+      if( r >= settings.h || r < 0 || c >= settings.w || c < 0 ) {
+        // not a valid pixel
+      }
+      else {
+        p = I.at<unsigned char>(r, c);
+      }
+
+      sp.pixels.push_back(p);
+    }
+    //cout << "shape indexed pixels get!" << endl;
+
+    ShapeVector deltaS(settings.Nfp*2, fill::zeros);
+
+    for(int k=0;k<settings.K;++k) {
+      for(int fidx=0;fidx<settings.F;++fidx) {
+        int m = featureSelectors[t][k][fidx].m;
+        int n = featureSelectors[t][k][fidx].n;
+
+        rho(fidx) = (int)sp.pixels[m] - (int)sp.pixels[n];
+      }
+
+      vec ds = regressors[t][k].evaluate(rho);
+      deltaS += ds;
+    }
+
+    S += Transform<double>::transform(deltaS, inv_M);
+  }
+
+  return S;
+}
+
 ExplicitShapeRegressor::ShapeVector ExplicitShapeRegressor::applyStageRegressor(
     int sidx, int stageIdx) {
   ShapeVector deltaS(settings.Nfp*2, fill::zeros);
@@ -424,7 +504,7 @@ ExplicitShapeRegressor::ShapeVector ExplicitShapeRegressor::applyStageRegressor(
   return deltaS;
 }
 
-void ExplicitShapeRegressor::evaluateImages(const map<string, string> &configs, const vector<int> &indices)
+void ExplicitShapeRegressor::evaluateImages(const map<string, string> &configs, const vector<int> &indices) const
 {
   for(auto p : configs) {
     cout << p.first << ": " << p.second << endl;
@@ -449,8 +529,9 @@ void ExplicitShapeRegressor::evaluateImages(const map<string, string> &configs, 
       imgfile = path + "/" + prefix + idxstr + postfix + imgext;
       ptsfile = path + "/" + prefix + idxstr + postfix + ptsext;
       ImageData imgdata;
-      imgdata.loadImage(imgfile);
-      imgdata.loadPoints(ptsfile);
+      imgdata.loadGeneralImage(imgfile);
+      imgdata.loadGeneralPoints(ptsfile);
+      imgdata.guess = meanShape;
 
       evaluateImage(imgdata);
     }
@@ -466,7 +547,8 @@ void ExplicitShapeRegressor::evaluateImages(const map<string, string> &configs, 
 
       ImageData imgdata;
       imgdata.loadGeneralImage(imgfile);
-      imgdata.loadPoints(ptsfile);
+      imgdata.loadGeneralPoints(ptsfile);
+      imgdata.guess = meanShape;
 
       evaluateImage(imgdata);
     }
@@ -476,8 +558,12 @@ void ExplicitShapeRegressor::evaluateImages(const map<string, string> &configs, 
   }
 }
 
-void ExplicitShapeRegressor::evaluateImage(const ExplicitShapeRegressor::ImageData &imgdata)
+void ExplicitShapeRegressor::evaluateImage(const ExplicitShapeRegressor::ImageData &imgdata) const
 {
+  std::random_device rd;
+  std::default_random_engine e1(rd());
+  std::uniform_int_distribution<int> uniform_dist(0, settings.Nint - 1);
+
   imgdata.show();
 
   /// detect the face
@@ -485,13 +571,70 @@ void ExplicitShapeRegressor::evaluateImage(const ExplicitShapeRegressor::ImageDa
 
   /// obtain a bounding box for the face
   /// slightly enlarge each bounding box
-  vector<FaceDetector::BoundingBox> boundingBoxes(faces.size());
-  for(int i=0;i<boundingBoxes.size();++i) {
+  for(int i=0;i<faces.size();++i) {
+    FaceDetector::BoundingBox &bb = faces[i];
+    CvPoint center = cvPoint(0.5 * (bb.lr.x + bb.ul.x), 0.5 * (bb.lr.y+bb.ul.y));
+
     /// enlarge the bounding box, and obtain corresponding image
+    int ow = imgdata.img.cols, oh = imgdata.img.rows;
+    int maxdim = std::max(ow, oh);
+    maxdim = std::min(maxdim, oh-1-center.y);
+    maxdim = std::min(maxdim, center.y);
+    maxdim = std::min(maxdim, ow-1-center.x);
+    maxdim = std::min(maxdim, center.x);
+
+    cout << bb.ul.x << ", "
+         << bb.ul.y << ", "
+         << bb.lr.x << ", "
+         << bb.lr.y << endl;
+
+    int w = bb.lr.x - bb.ul.x, h = bb.lr.y - bb.ul.y;
+    double scale = 4.0;
+    w *= scale;
+    h *= scale;
+    int imgsize = std::min(std::max(w, h), maxdim*2);
+    CvPoint minpt, maxpt;
+    minpt.x = center.x - 0.5 * imgsize; minpt.y = center.y - 0.5 * imgsize;
+    maxpt.x = center.x + 0.5 * imgsize; maxpt.y = center.y + 0.5 * imgsize;
+
+    cout << minpt.x << ", "
+         << minpt.y << ", "
+         << maxpt.x << ", "
+         << maxpt.y << endl;
 
     /// cut a sub image for face shape fitting
+    cv::Mat subimg = imgdata.img(cv::Rect(minpt.x, minpt.y, imgsize, imgsize));
+
+    const double targetSize = 256.0;
+    Size size(targetSize, targetSize);
+    cv::Mat regimg;
+    /// resize the cutout image
+    resize(subimg, regimg, size);
+
+    /// convert to grayscale image
+    cv::Mat inimg;
+    if( regimg.channels() == 3 ) {
+      cvtColor( regimg, inimg, CV_BGR2GRAY );
+    }
+    else {
+      inimg = regimg;
+    }
+
+    showPointsWithImage("guess", inimg, imgdata.guess);
+
+    /// use the regressor to compute an output
+    /// regression with multiple initialization
+    const int initSize = 5;
+    arma::mat results(initSize, settings.Nfp * 2);
+    for(int j=0;j<initSize;++j) {
+      int idx = uniform_dist(e1);
+      ShapeVector S0 = initShapes[idx];
+      results.row(j) = trans(applyRegressor(inimg, S0));
+    }
+    ShapeVector result = trans(median(results));
 
     /// draw the fitted face back to the original image
+    showPointsWithImage("guess", inimg, result);
   }
 }
 
@@ -520,6 +663,12 @@ void ExplicitShapeRegressor::loadData(const map<string, string> &configs, const 
       imgdata.loadImage(imgfile);
       imgdata.loadPoints(ptsfile);
     }
+
+    settings.Nint = data.size();
+    initShapes.resize(settings.Nint);
+    for(int i=0;i<settings.Nint;++i) {
+      initShapes[i] = data[i].truth;
+    }
   }
   else if (!indices.empty()) {
     int j=0;
@@ -536,6 +685,12 @@ void ExplicitShapeRegressor::loadData(const map<string, string> &configs, const 
       imgdata.loadPoints(ptsfile);
 
       ++j;
+    }
+
+    settings.Nint = data.size();
+    initShapes.resize(settings.Nint);
+    for(int i=0;i<settings.Nint;++i) {
+      initShapes[i] = data[i].truth;
     }
   }
   else {
@@ -629,39 +784,51 @@ void ExplicitShapeRegressor::load(const string &filename)
   /// write the settings
   fin >> settings.T >> settings.K
       >> settings.P >> settings.F
-      >> settings.Nfp >> settings.beta
-      >> settings.kappa;
+      >> settings.Nfp >> settings.Nint
+      >> settings.beta >> settings.kappa;
 
   cout << "stages: " << settings.T << endl;
   cout << "ferns per stage: " << settings.K << endl;
   cout << "sample pixels per image: " << settings.P << endl;
   cout << "features per fern: " << settings.F << endl;
   cout << "number of feature points: " << settings.Nfp << endl;
+  cout << "number of initial shapes: " << settings.Nint << endl;
   cout << "beta: " << settings.beta << endl;
   cout << "kappa: " << settings.kappa << endl;
 
   /// initialize the regressor
   initializeRegressor();
 
-  /// write the mean shape
+  /// load the mean shape
   meanShape = vec(settings.Nfp * 2);
   for(int i=0;i<settings.Nfp;++i)
     fin >> meanShape(i*2)
         >> meanShape(i*2+1);
 
+  /// load the initial shapes
+  initShapes.resize(settings.Nint);
+  for(int i=0;i<settings.Nint;++i) {
+    cout << "init shape #" << i << endl;
+    initShapes[i] = vec(settings.Nfp * 2);
+    for(int j=0;j<settings.Nfp;++j)
+      fin >> initShapes[i](j*2)
+          >> initShapes[i](j*2+1);
+  }
+
   /// start from the first stage one to the last stage
-  /// write the ferns in each stage
+  /// load the ferns in each stage
   for(int i=0;i<settings.T;++i) {
     cout << "stage #" << i << endl;
-    /// write the localcoordinates
-    for(int cidx=0;cidx<localCoords[i].size();++cidx)
+    /// load the localcoordinates
+    for(int cidx=0;cidx<localCoords[i].size();++cidx) {
       fin >> localCoords[i][cidx].fpidx
           >> localCoords[i][cidx].pt.x
           >> localCoords[i][cidx].pt.y;
+    }
 
     for(int k=0;k<settings.K;++k) {
       fern_t &fern = regressors[i][k];
-      /// write the fern
+      /// load the fern
       auto &thresholds = fern.getThresholds();
       thresholds = vec(settings.F);
 
@@ -677,7 +844,7 @@ void ExplicitShapeRegressor::load(const string &filename)
           fin >> outputs[oidx](fpidx*2) >> outputs[oidx](fpidx*2+1);
       }
 
-      /// write the selector
+      /// load the selector
       for(int fidx=0;fidx<settings.F;++fidx)
         fin >> featureSelectors[i][k][fidx].m
             >> featureSelectors[i][k][fidx].n;
@@ -697,8 +864,8 @@ void ExplicitShapeRegressor::write(const string &filename)
   /// write the settings
   fout << settings.T << ' ' << settings.K << ' '
        << settings.P << ' ' << settings.F << ' '
-       << settings.Nfp << ' ' << settings.beta << ' '
-       << settings.kappa << endl;
+       << settings.Nfp << ' ' << settings.Nint << ' '
+       << settings.beta << ' ' << settings.kappa << endl;
 
   /// write the mean shape
   for(int i=0;i<settings.Nfp;++i)
@@ -706,14 +873,23 @@ void ExplicitShapeRegressor::write(const string &filename)
          << meanShape(i*2+1)  << ' ';
   fout << endl;
 
+  /// write the initial shapes
+  for(int i=0;i<settings.Nint;++i) {
+    for(int j=0;j<settings.Nfp;++j)
+      fout << initShapes[i](j*2)  << ' '
+           << initShapes[i](j*2+1)  << ' ';
+    fout << endl;
+  }
+
   /// start from the first stage one to the last stage
   /// write the ferns in each stage
   for(int i=0;i<settings.T;++i) {
     /// write the localcoordinates
-    for(int cidx=0;cidx<localCoords[i].size();++cidx)
+    for(int cidx=0;cidx<localCoords[i].size();++cidx) {
       fout << localCoords[i][cidx].fpidx << ' '
            << localCoords[i][cidx].pt.x << ' '
            << localCoords[i][cidx].pt.y << ' ';
+    }
     fout << endl;
 
     for(int k=0;k<settings.K;++k) {
@@ -789,5 +965,29 @@ void ExplicitShapeRegressor::ImageData::loadPoints(const string &filename)
   cout << endl;
 #endif
   cout << "points = " << npts << endl;
+  f.close();
+}
+
+void ExplicitShapeRegressor::ImageData::loadGeneralPoints(const string &ptsfile)
+{
+  ifstream f(ptsfile);
+  string version_tag;
+  f >> version_tag;
+  std::getline(f, version_tag);
+  string pointcount_tag;
+  int npoints;
+  f >> pointcount_tag >> npoints;
+  cout << pointcount_tag << endl;
+  cout << npoints << " points" << endl;
+  f.ignore();
+  string dummy;
+  std::getline(f, dummy);
+
+  truth = vec(npoints*2);
+
+  for(int i=0;i<npoints;++i) {
+    cout << i << endl;
+    f >> truth(i*2) >> truth(i*2+1);
+  }
   f.close();
 }

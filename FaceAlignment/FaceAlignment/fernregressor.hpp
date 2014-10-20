@@ -26,7 +26,7 @@ public:
     outputs = out;
   }
 
-  OutputType evaluate(const InputType &input);
+  OutputType evaluate(const InputType &input) const;
   const InputType& getThresholds() const {
     return thresholds;
   }
@@ -42,7 +42,7 @@ public:
   }
 
 protected:
-  int computeBinIndex(const InputType &input);
+  int computeBinIndex(const InputType &input) const;
 
 private:
   size_t N;
@@ -51,14 +51,14 @@ private:
 };
 
 template <typename InputType, typename OutputType>
-OutputType FernRegressor<InputType, OutputType>::evaluate(const InputType &input)
+OutputType FernRegressor<InputType, OutputType>::evaluate(const InputType &input) const
 {
   int binIdx = computeBinIndex(input);
   return outputs[binIdx];
 }
 
 template <typename InputType, typename OutputType>
-int FernRegressor<InputType, OutputType>::computeBinIndex(const InputType &input)
+int FernRegressor<InputType, OutputType>::computeBinIndex(const InputType &input) const
 {
   int binIdx = 0;
   for(int i=0;i<N;++i) {

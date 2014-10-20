@@ -16,7 +16,7 @@ def padWith(s, c, L):
 valid_indices = []
 
 for i in range(imgcount):
-	idx_str = padWith(str(i+2), '0', digits)
+	idx_str = padWith(str(i+1), '0', digits)
 	imgfile = path + basename + idx_str + img_extension
 	ptsfile = path + basename + idx_str + pts_extension
 	#print imgfile, ptsfile
@@ -24,7 +24,7 @@ for i in range(imgcount):
 	if os.path.isfile(imgfile):
 		valid_indices.append(i+1)
 
-		cmd = ['../build-FaceAlignment-Desktop_Qt_5_3_clang_64bit-Release/FaceAlignment', 
+		cmd = ['../build-FaceAlignment-Desktop_Qt_5_3_clang_64bit-Release/FaceAlignment',
 		       '--preprocess', '--image_file', imgfile, '--point_file', ptsfile]
 		p = subprocess.Popen(' '.join(cmd), stdout=subprocess.PIPE, shell=True)
 		(output, err) = p.communicate()

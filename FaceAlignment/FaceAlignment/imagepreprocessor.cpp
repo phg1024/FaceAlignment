@@ -10,15 +10,19 @@ using namespace cv;
 ImagePreprocessor::ImagePreprocessor() {}
 
 void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
-  FaceDetector::detectFace(imgfile);
-
-
   Mat img = imread(imgfile.c_str(), CV_LOAD_IMAGE_UNCHANGED); //read the image data in the file "MyPic.JPG" and store it in 'img'
 
   if (img.empty()) //check whether the image is loaded or not
   {
-       cout << "Error : Image cannot be loaded..!!" << endl;
-       return;
+    cout << "Error : Image cannot be loaded..!!" << endl;
+    return;
+  }
+  cout << "image loaded." << endl;
+
+  vector<FaceDetector::BoundingBox> faces = FaceDetector::detectFace(img);
+  if( faces.empty() ) {
+    cerr << "No face is detected." << endl;
+    return;
   }
 
   /// read in the points
@@ -42,22 +46,56 @@ void ImagePreprocessor::process(const string &imgfile, const string &ptsfile) {
   };
   vector<point_t> pts(npoints);
 
-  point_t maxpt(0.0, 0.0), minpt(img.cols, img.rows);
-
   for(int i=0;i<npoints;++i) {
     double x, y;
     f >> x >> y;
-    cout << x << ',' << y << endl;
+    //cout << x << ',' << y << endl;
     pts[i].x = x; pts[i].y = y;
-
-    maxpt.x = max(x, maxpt.x); maxpt.y = max(y, maxpt.y);
-    minpt.x = min(x, minpt.x); minpt.y = min(y, minpt.y);
 
     //circle(img, Point(pts[i].x, pts[i].y), 2, Scalar(0, 255, 0));
   }
   f.close();
 
-  //rectangle(img, Point(minpt.x, minpt.y), Point(maxpt.x, maxpt.y), Scalar(0, 0, 255));
+  bool foundValidFace = false;
+  int maxInsideCount = 0;
+  point_t maxpt(0.0, 0.0), minpt(img.cols, img.rows);
+  for(int i=0;i<faces.size();++i) {
+    FaceDetector::BoundingBox &bb = faces[i];
+    cout << "bounding box #" << i << ": "
+         << bb.ul.x << ", "
+         << bb.ul.y << ", "
+         << bb.lr.x << ", "
+         << bb.lr.y << endl;
+    /// if more than half of the points are inside the bounding box, use
+    /// it as the bounding box of the face
+    int insideCount = 0;
+    for(int j=0;j<pts.size();++j) {
+      double x = pts[j].x;
+      double y = pts[j].y;
+
+      if( x >= bb.ul.x && x <= bb.lr.x && y >= bb.ul.y && y <= bb.lr.y ) {
+        ++insideCount;
+      }
+      else {
+        //cout << "out" << endl;
+      }
+    }
+    cout << insideCount << endl;
+    if( insideCount > maxInsideCount ) {
+      maxInsideCount = insideCount;
+      if( insideCount >= pts.size() / 2 ) {
+        maxpt.x = bb.lr.x; maxpt.y = bb.lr.y;
+        minpt.x = bb.ul.x; minpt.y = bb.ul.y;
+        foundValidFace = true;
+      }
+    }
+  }
+
+  if( !foundValidFace ) {
+    cout << "Inside count = " << maxInsideCount << endl;
+    cout << "No valid face is found." << endl;
+    return;
+  }
 
   point_t center(0.5*(minpt.x+maxpt.x), 0.5*(minpt.y+maxpt.y));
   double maxdim = max(img.rows, img.cols);

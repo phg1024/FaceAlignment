@@ -14,8 +14,7 @@ class FaceDetector
 {
 public:
   struct BoundingBox {
-    CvPoint ul;
-    CvPoint lr;
+    CvPoint ul, lr;
   };
 
   FaceDetector();
@@ -37,7 +36,7 @@ public:
     LibFace* libFace = new LibFace(mode);
     vector<Face> result = libFace->detectFaces(&pimg, cvSize(pimg.width, pimg.height));
 
-    vector<BoundingBox> detectedFaces(result.size());
+    vector<BoundingBox> detectedFaces;
     cout << "detected faces: " << result.size() << endl;
     /* go through all the detected faces, and draw them into the input image */
     for (int i = 0; i < result.size(); i++)
@@ -47,21 +46,21 @@ public:
            << face.getY1() << ", "
            << face.getX2() << ", "
            << face.getY2() << endl;
-      BoundingBox &bb = detectedFaces[i];
-      CvPoint &ul = bb.ul; CvPoint &lr = bb.lr;
-      ul.x = face.getX1(); ul.y = face.getY1();
-      lr.x = face.getX2(); lr.y = face.getY2();
+      BoundingBox bb;
+      bb.ul.x = face.getX1(); bb.ul.y = face.getY1();
+      bb.lr.x = face.getX2(); bb.lr.y = face.getY2();
+      detectedFaces.push_back(bb);
 
       /* draws a rectangle with given coordinates of the upper left
     and lower right corners into an image */
-      cvRectangle(&pimg, ul, lr, cv::Scalar(0, 0, 255), 3, 8, 0);
+      //cvRectangle(&pimg, bb.ul, bb.lr, cv::Scalar(0, 0, 255), 3, 8, 0);
     }
 
     delete libFace;
 
     /* free up the memory */
     cvReleaseImage( &gray );
-
+#if 0
     /* create a window with handle result */
     cvNamedWindow( "result" );
 
@@ -69,10 +68,12 @@ public:
     cvShowImage( "result", &pimg );
     cvWaitKey(0);
     cvDestroyWindow("result");
+#endif
+
     return detectedFaces;
   }
 
-  static void detectFace( const string &filename )
+  static vector<BoundingBox> detectFace( const string &filename )
   {
     cout << "detecting face ..." << endl;
 
@@ -99,6 +100,7 @@ public:
     vector<Face> result = libFace->detectFaces(filename);
 
     cout << "detected faces: " << result.size() << endl;
+    vector<BoundingBox> detectedFaces;
     /* go through all the detected faces, and draw them into the input image */
     for (int i = 0; i < result.size(); i++)
     {
@@ -107,13 +109,13 @@ public:
            << face.getY1() << ", "
            << face.getX2() << ", "
            << face.getY2() << endl;
-      CvPoint ul; CvPoint lr;
-      ul.x = face.getX1(); ul.y = face.getY1();
-      lr.x = face.getX2(); lr.y = face.getY2();
+      BoundingBox bb;
+      bb.ul.x = face.getX1(); bb.ul.y = face.getY1();
+      bb.lr.x = face.getX2(); bb.lr.y = face.getY2();
 
       /* draws a rectangle with given coordinates of the upper left
     and lower right corners into an image */
-      cvRectangle(image, ul, lr, cv::Scalar(0, 0, 255), 3, 8, 0);
+      cvRectangle(image, bb.ul, bb.lr, cv::Scalar(0, 0, 255), 3, 8, 0);
     }
 
     delete libFace;
@@ -121,17 +123,15 @@ public:
     /* free up the memory */
     cvReleaseImage( &gray );
 
-    return;
-
     /* create a window with handle result */
     cvNamedWindow( "result" );
 
     /* show the result and wait for a keystroke form user before finishing */
     cvShowImage( "result", image );
     cvWaitKey(0);
-    cvReleaseImage( &image );
     cvDestroyWindow("result");
-    return;
+
+    return detectedFaces;
   }
 };
 
